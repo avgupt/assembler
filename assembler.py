@@ -6,6 +6,9 @@ import sys
 #	HANDLE ASSEMBLER DIRECTIVES
 
 #	DIV
+
+#	Labels 
+
 '''def RepresentsInt(s):
 
     try:
@@ -125,6 +128,9 @@ def passOne(file):
 
 		#sys.exit("Success!")
 	return
+
+def isLabelValid():
+	pass
 
 def readVariables(inputTable, address, memory):
 	if(inputTable[address][0] not in symbolTable):
