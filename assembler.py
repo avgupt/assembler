@@ -136,7 +136,8 @@ def passOne(file):
 
 		if(len(inputTable[address])==3):
 			if(inputTable[address][1]=="BRZ" or inputTable[address][1]=="BRN" or inputTable[address][1]=="BRP"):
-				if([inputTable[address][2]] not in lableTable):
+				
+				if(inputTable[address][2] not in lableTable):
 					sys.exit("ERROR at line "+str(location_counter)+" : Label not defined.")
 				symbolTable[inputTable[address][2]] = lableTable[inputTable[address][2]]
 				address+=1
