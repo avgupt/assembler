@@ -197,6 +197,8 @@ def isLabelValid(label,lc):
 def readVariables(inputTable, address, memory):
 	if(inputTable[address][0] not in symbolTable):
 		print("WARNING: Variable is declared but not used in code.")
+	if(len(inputTable[address])==1 or len(inputTable[address][1])==0):
+		sys.exit("ERROR: Please provide value to the variable "+str(inputTable[address][0])+".")
 	symbolTable[inputTable[address][0]] = [inputTable[address][1],memory]
 
 
