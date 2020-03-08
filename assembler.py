@@ -3,11 +3,10 @@ import sys
 
 
 ############ TO DO##########33
+
+
 #	HANDLE ASSEMBLER DIRECTIVES
 
-#	DIV
-
-#	Labels 
 
 '''def RepresentsInt(s):
 
@@ -36,9 +35,12 @@ opcodeTable = {}
 symbolTable = {}
 lableTable = {}
 ans = []
+global divVariables
+divVariables = False
 
 
 def passOne(file):
+	global divVariables
 
 	#asmFile = open(file, "r")
 	#asmDirective = ["START","END\n"]
@@ -64,7 +66,7 @@ def passOne(file):
 
 	address = 0
 	inputTable = {}
-	num = 255
+	
 
 
 
@@ -73,6 +75,7 @@ def passOne(file):
 
 		inputTable[address] = list(map(lambda x:x.rstrip(),start[address+1].split("\t")))
 		#print(inputTable[address])
+		#print(len(inputTable[address]))
 		#print(start[address+1])
 		#print((inputTable[address]))
 
@@ -84,6 +87,10 @@ def passOne(file):
 			if(inputTable[address][1]!="CLA" and inputTable[address][1]!="STP"):
 				sys.exit("ERROR at line " + str(location_counter) +": Incorrect syntax of input. Check documentation.")
 			if(inputTable[address][1]=="STP"):
+				"""error if there's a label with STP"""
+				if(inputTable[address][0]):
+					sys.exit("ERROR at line "+str(location_counter)+": You cannot have a label with 'STP'.")
+
 				opcodeTable[location_counter] = [inputTable[address][1],opcodes[inputTable[address][1]]]
 				address+=1
 				location_counter+=1
@@ -94,43 +101,97 @@ def passOne(file):
 					#print(inputTable[address])
 					if(address==len(start)-2):
 						if(inputTable[address][0]=="END"):
-							return secondPass()
+							if(divVariables):
+								symbolTable["R1"] = ['0',location_counter]
+								symbolTable["R2"] = ['0',location_counter+4]
+							return 
 						sys.exit("ERROR: Incorrect syntax of input.'END' expected at the end of program. Check documentation.")
 
 
 					readVariables(inputTable, address, location_counter)					#	to read variables after STP
 					address+=1
-					location_counter+=1
+					location_counter+=4
+			else:
+				"""error if there's a label with CLA"""
+				if(inputTable[address][0]):
+					sys.exit("ERROR at line "+str(location_counter)+": You cannot have a label with 'CLA'.")
+
+				opcodeTable[location_counter] = [inputTable[address][1],opcodes[inputTable[address][1]]]
+				address+=1
+				location_counter+=1
+				continue
+
 
 
 		if(len(inputTable[address])== 1):
 			if("END" in inputTable[address][0]):
-				return secondPass()
+				"""if END is read, first pass is finished."""
+				return 
 			sys.exit("ERROR at line " + str(location_counter) +": Incorrect syntax of input. Check documentation.")
 
 
 		if(isSymbolValid(inputTable[address][1])):
+			""" Exit program if an invalid opcode is detected."""
 			sys.exit("ERROR at line " + str(location_counter) +": Invalid assembly opcode '"+inputTable[address][1]+"'. Check documentation.")
 
 		if(len(inputTable[address])==3):
+			if(inputTable[address][1]=="BRZ" or inputTable[address][1]=="BRN" or inputTable[address][1]=="BRP"):
+				if([inputTable[address][2]] not in lableTable):
+					sys.exit("ERROR at line "+str(location_counter)+" : Label not defined.")
+				symbolTable[inputTable[address][2]] = lableTable[inputTable[address][2]]
+				address+=1
+				location_counter+=1
+				continue
+
+			#print(inputTable[address][1])
+			#print(inputTable[address][1]=="DIV")
+
+			if(inputTable[address][1]=="DIV"):
+				divVariables= True
+
+			isVariableValid(inputTable[address][2],location_counter)
 			symbolTable[inputTable[address][2]] = False					# if variable is used but not declared
 
 
+
 		if(inputTable[address][0]):
-			lableTable[inputTable[address][0]] = location_counter
+			if(inputTable[address][0] in lableTable):
+				"""	error if a label is declared twice in code"""
+				sys.exit("ERROR at line "+str(location_counter)+": Label '"+inputTable[address][0]+"' is already used. Cannot be used again. Check documentation and try again.")
+
+			isLabelValid(inputTable[address][0],location_counter)
+			lableTable[inputTable[address][0]] = location_counter		#	lable table as dictionary : keys are labels and their value is location counter
+
 			#print(lableTable)
-		#print(inputTable[address][2])
+		#print(inputTable[address])
+				
+
 
 		opcodeTable[location_counter] = [inputTable[address][1],opcodes[inputTable[address][1]],inputTable[address][2]]
 		address +=1
-		num -=1
 		location_counter+=1
 
 		#sys.exit("Success!")
 	return
 
-def isLabelValid():
-	pass
+def isVariableValid(variable,lc):
+	global divVariables
+	""" to check if variable is valid"""
+	if(variable in opcodeTable or variable=="START" or variable=="END" or variable in opcodes.keys()):
+		sys.exit("ERROR at line "+str(lc)+": '"+variable+"' is an invalid variable. Check documentation.")
+	#print(divVariables)
+	if(variable=="R1" or variable=="R2"):
+		if(not divVariables):
+			sys.exit("ERROR at line "+str(lc)+": '"+variable+"' is an invalid variable. Check documentation.")
+
+
+def isLabelValid(label,lc):
+	"""check if label is valid.
+	error if label is same as opcode or assembly directive or same as a variable"""
+
+	if (label in opcodes.keys() or label == "END" or label == "START" or label in symbolTable):
+		sys.exit("ERROR at line "+str(lc)+": Invalid label "+label+" .Check documentation and try again.")
+	
 
 def readVariables(inputTable, address, memory):
 	if(inputTable[address][0] not in symbolTable):
@@ -161,11 +222,11 @@ def secondPass():
 
 
 def isSymbolValid(inputSymbol):
+	"""check if given opcode is valid"""
 	ErrorFlag = False
 
 	if(inputSymbol not in opcodes):
 		ErrorFlag = True
-		return ErrorFlag
 		
 	return ErrorFlag
 
@@ -191,8 +252,12 @@ while(inputFlag):
 		(passOne(asmFile))
 		#print(symbolTable)
 		print(lableTable)
+		print()
 		print(symbolTable)
+		print()
 		print(opcodeTable)
+		print()
+		secondPass()
 		
 		inputFlag = False
 	except FileNotFoundError:
