@@ -167,7 +167,8 @@ def passOne(file):
 		#print(inputTable[address])
 				
 
-
+		if(len(inputTable[address][2])==0):
+			sys.exit("ERROR at line "+str(location_counter)+" : Incorrect syntax of input. Check documentation.")
 		opcodeTable[location_counter] = [inputTable[address][1],opcodes[inputTable[address][1]],inputTable[address][2]]
 		address +=1
 		location_counter+=1
@@ -235,12 +236,25 @@ def isSymbolValid(inputSymbol):
 
 
 def decimalToBinary(n): 
-	#print(n)
-	binary = bin(n).replace("0b", "")
-	if (len(binary)==8):
-		return binary
-	return "0"*(8-len(binary))+binary
+	ans = ""
+	if(n>1):
+		ans += decimalToBinary(n//2)
+	ans += str(n%2)
+	return ans
 
+def printDict(dictionary):
+	for i in dictionary.keys():
+		if(dictionary[i]==False):
+			continue
+		if(type(dictionary[i])==list):
+			print(str(i)+" : ",end="")
+			for i in dictionary[i]:
+				print(i,end=" ; ")
+			print()
+			continue
+
+		print(str(i)+" : "+str(dictionary[i]))
+		print()
 
 
 
@@ -254,12 +268,15 @@ while(inputFlag):
 		asmFile = open(file, 'r')
 		(passOne(asmFile))
 		#print(symbolTable)
-		print(lableTable)
-		print()
-		print(symbolTable)
-		print()
-		print(opcodeTable)
-		print()
+		printDict(lableTable)
+		#print(lableTable)
+		#print()
+		printDict(symbolTable)
+		#print(symbolTable)
+		#print()
+		printDict(opcodeTable)
+		#print(opcodeTable)
+		#print()
 		secondPass()
 		
 		inputFlag = False
