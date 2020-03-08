@@ -215,7 +215,9 @@ def secondPass():
 	for i in opcodeTable.keys():
 		
 		if(len(opcodeTable[i])==3):
-			ans.append(opcodeTable[i][1]+decimalToBinary(symbolTable[opcodeTable[i][2]][1]))
+			objAddress = decimalToBinary(symbolTable[opcodeTable[i][2]][1])
+			objAddress += "0"*(8-len(objAddress))
+			ans.append(opcodeTable[i][1]+ objAddress)
 		else:
 			ans.append(opcodeTable[i][1]+("0"*8))
 		
@@ -254,7 +256,7 @@ def printDict(dictionary):
 			continue
 
 		print(str(i)+" : "+str(dictionary[i]))
-		print()
+	print()
 
 
 
@@ -266,17 +268,23 @@ while(inputFlag):
 	try:
 		file = input("Enter name of the file: ")
 		asmFile = open(file, 'r')
+		print()
 		(passOne(asmFile))
 		#print(symbolTable)
+		print("GIVEN OPCODES")
+		printDict(opcodes)
+		print("LABEL TABLE")
 		printDict(lableTable)
 		#print(lableTable)
-		#print()
+		print("SYMBOL TABLE")
 		printDict(symbolTable)
 		#print(symbolTable)
-		#print()
+		print("OPCODE TABLE")
 		printDict(opcodeTable)
 		#print(opcodeTable)
 		#print()
+		print()
+		print("OBJECT CODE")
 		secondPass()
 		
 		inputFlag = False
