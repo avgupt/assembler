@@ -74,31 +74,34 @@ def passOne(file):
 
 
 		inputTable[address] = list(map(lambda x:x.rstrip(),start[address+1].split("\t")))
-		#print(inputTable[address])
-		#print(len(inputTable[address]))
-		#print(start[address+1])
-		#print((inputTable[address]))
 
-		#print(inputTable[address])
 
-				
+		if(len(inputTable[address])>3):
+			sys.exit("ERROR at line " + str(location_counter) +": Incorrect syntax of input. Check documentation.")
+			#	error if more than one variable is used in one instruction
+
+		if(inputTable[address][0]):
+			if(inputTable[address][0] in lableTable):
+				"""	error if a label is declared twice in code"""
+				sys.exit("ERROR at line "+str(location_counter)+": Label '"+inputTable[address][0]+"' is already used. Cannot be used again. Check documentation and try again.")
+
+			isLabelValid(inputTable[address][0],location_counter)
+			lableTable[inputTable[address][0]] = location_counter		#	lable table as dictionary : keys are labels and their value is location counter
+
 
 		if(len(inputTable[address])==2):
 			if(inputTable[address][1]!="CLA" and inputTable[address][1]!="STP"):
 				sys.exit("ERROR at line " + str(location_counter) +": Incorrect syntax of input. Check documentation.")
+
+
+
 			if(inputTable[address][1]=="STP"):
-				"""error if there's a label with STP"""
-				if(inputTable[address][0]):
-					sys.exit("ERROR at line "+str(location_counter)+": You cannot have a label with 'STP'.")
 
 				opcodeTable[location_counter] = [inputTable[address][1],opcodes[inputTable[address][1]]]
 				address+=1
 				location_counter+=1
 				while(True):
 					inputTable[address] = list(map(lambda x:x.rstrip(),start[address+1].split("\t")))
-					#print(address)
-					#print("len "+str(len(inputTable)))
-					#print(inputTable[address])
 					if(address==len(start)-2):
 						if(inputTable[address][0]=="END"):
 							if(divVariables):
@@ -112,9 +115,6 @@ def passOne(file):
 					address+=1
 					location_counter+=4
 			else:
-				"""error if there's a label with CLA"""
-				if(inputTable[address][0]):
-					sys.exit("ERROR at line "+str(location_counter)+": You cannot have a label with 'CLA'.")
 
 				opcodeTable[location_counter] = [inputTable[address][1],opcodes[inputTable[address][1]]]
 				address+=1
@@ -135,11 +135,23 @@ def passOne(file):
 			sys.exit("ERROR at line " + str(location_counter) +": Invalid assembly opcode '"+inputTable[address][1]+"'. Check documentation.")
 
 		if(len(inputTable[address])==3):
+
+
+			"""	error if variable is used with CLA/STP"""
+			if(inputTable[address][1]=="CLA"):
+				sys.exit("ERROR at line "+str(location_counter)+" : You cannot have a variable with CLA.")
+			if(inputTable[address][1]=="STP"):
+				sys.exit("ERROR at line "+str(location_counter)+" : You cannot have a variable with STP.")
+
+
+
 			if(inputTable[address][1]=="BRZ" or inputTable[address][1]=="BRN" or inputTable[address][1]=="BRP"):
 				
 				if(inputTable[address][2] not in lableTable):
-					sys.exit("ERROR at line "+str(location_counter)+" : Label not defined.")
-				symbolTable[inputTable[address][2]] = lableTable[inputTable[address][2]]
+					symbolTable[inputTable[address][2]] = "label"
+					#sys.exit("ERROR at line "+str(location_counter)+" : Label not defined.")
+				else:
+					symbolTable[inputTable[address][2]] = lableTable[inputTable[address][2]]
 				address+=1
 				location_counter+=1
 				continue
@@ -153,18 +165,6 @@ def passOne(file):
 			isVariableValid(inputTable[address][2],location_counter)
 			symbolTable[inputTable[address][2]] = False					# if variable is used but not declared
 
-
-
-		if(inputTable[address][0]):
-			if(inputTable[address][0] in lableTable):
-				"""	error if a label is declared twice in code"""
-				sys.exit("ERROR at line "+str(location_counter)+": Label '"+inputTable[address][0]+"' is already used. Cannot be used again. Check documentation and try again.")
-
-			isLabelValid(inputTable[address][0],location_counter)
-			lableTable[inputTable[address][0]] = location_counter		#	lable table as dictionary : keys are labels and their value is location counter
-
-			#print(lableTable)
-		#print(inputTable[address])
 				
 
 		if(len(inputTable[address][2])==0):
@@ -190,6 +190,9 @@ def isVariableValid(variable,lc):
 def isLabelValid(label,lc):
 	"""check if label is valid.
 	error if label is same as opcode or assembly directive or same as a variable"""
+	if(label in symbolTable and symbolTable[label]=="label"):
+		symbolTable[label] = lc
+		return
 
 	if (label in opcodes.keys() or label == "END" or label == "START" or label in symbolTable):
 		sys.exit("ERROR at line "+str(lc)+": Invalid label "+label+" .Check documentation and try again.")
@@ -197,33 +200,11 @@ def isLabelValid(label,lc):
 
 def readVariables(inputTable, address, memory):
 	if(inputTable[address][0] not in symbolTable):
-		print("WARNING: Variable is declared but not used in code.")
+		print("WARNING: Variable '"+inputTable[address][0]+"' is declared but not used in code.")
 	if(len(inputTable[address])==1 or len(inputTable[address][1])==0):
 		sys.exit("ERROR: Please provide value to the variable "+str(inputTable[address][0])+".")
 	symbolTable[inputTable[address][0]] = [inputTable[address][1],memory]
 
-
-def secondPass():
-	#print(symbolTable)
-	#print(opcodeTable)
-
-	for i in symbolTable.keys():
-		if (symbolTable[i]==False):
-			sys.exit("ERROR: "+i+" is used in program but value is not provided.")
-
-	
-	for i in opcodeTable.keys():
-		
-		if(len(opcodeTable[i])==3):
-			objAddress = decimalToBinary(symbolTable[opcodeTable[i][2]][1])
-			objAddress += "0"*(8-len(objAddress))
-			ans.append(opcodeTable[i][1]+ objAddress)
-		else:
-			ans.append(opcodeTable[i][1]+("0"*8))
-		
-	for i in ans:
-		print(i)
-	return 
 
 
 
@@ -244,6 +225,7 @@ def decimalToBinary(n):
 	ans += str(n%2)
 	return ans
 
+
 def printDict(dictionary):
 	for i in dictionary.keys():
 		if(dictionary[i]==False):
@@ -258,6 +240,35 @@ def printDict(dictionary):
 		print(str(i)+" : "+str(dictionary[i]))
 	print()
 
+
+
+def secondPass():
+	#print(symbolTable)
+	#print(opcodeTable)
+
+	for i in symbolTable.keys():
+		if (symbolTable[i]==False):
+			sys.exit("ERROR: "+i+" is used in program but value is not provided.")
+		elif (symbolTable[i]=="label"):
+			sys.exit("ERROR: label '"+i+"' is used but not defined.")
+
+	
+	for i in opcodeTable.keys():
+		
+		if(len(opcodeTable[i])==3):
+			objAddress = decimalToBinary(symbolTable[opcodeTable[i][2]][1])
+			objAddress = "0"*(8-len(objAddress)) + objAddress
+			ans.append(opcodeTable[i][1]+ objAddress)
+		else:
+			""" in case of CLA and STP"""
+			ans.append(opcodeTable[i][1]+("0"*8))
+
+
+	print("OBJECT CODE")	
+	for i in ans:
+		""" print object code"""
+		print(i)
+	return 
 
 
 
@@ -284,7 +295,7 @@ while(inputFlag):
 		#print(opcodeTable)
 		#print()
 		print()
-		print("OBJECT CODE")
+		
 		secondPass()
 		
 		inputFlag = False
