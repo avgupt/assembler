@@ -86,6 +86,12 @@ def passOne(file):
 				return 
 			sys.exit("ERROR at line " + str(location_counter) +": Incorrect syntax of input. Check documentation.")
 
+
+		if(len(inputTable[address])==2):
+			if(inputTable[address][1]!="CLA" and inputTable[address][1]!="STP"):
+				sys.exit("ERROR at line " + str(location_counter) +": Incorrect syntax of input. Check documentation.")
+		
+
 		if(inputTable[address][0]):
 			if(inputTable[address][0] in lableTable):
 				"""	error if a label is declared twice in code"""
