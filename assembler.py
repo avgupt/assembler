@@ -80,6 +80,12 @@ def passOne(file):
 			sys.exit("ERROR at line " + str(location_counter) +": Incorrect syntax of input. Check documentation.")
 			#	error if more than one variable is used in one instruction
 
+		if(len(inputTable[address])== 1):
+			if("END" in inputTable[address][0]):
+				"""if END is read, first pass is finished."""
+				return 
+			sys.exit("ERROR at line " + str(location_counter) +": Incorrect syntax of input. Check documentation.")
+
 		if(inputTable[address][0]):
 			if(inputTable[address][0] in lableTable):
 				"""	error if a label is declared twice in code"""
@@ -87,6 +93,8 @@ def passOne(file):
 
 			isLabelValid(inputTable[address][0],location_counter)
 			lableTable[inputTable[address][0]] = location_counter		#	lable table as dictionary : keys are labels and their value is location counter
+
+
 
 
 		if(len(inputTable[address])==2):
@@ -122,12 +130,6 @@ def passOne(file):
 				continue
 
 
-
-		if(len(inputTable[address])== 1):
-			if("END" in inputTable[address][0]):
-				"""if END is read, first pass is finished."""
-				return 
-			sys.exit("ERROR at line " + str(location_counter) +": Incorrect syntax of input. Check documentation.")
 
 
 		if(isSymbolValid(inputTable[address][1])):
