@@ -1,20 +1,6 @@
 import sys
+import time as t
 
-
-
-############ TO DO##########33
-
-
-#	HANDLE ASSEMBLER DIRECTIVES
-
-
-'''def RepresentsInt(s):
-
-    try:
-        int(s)
-        return True
-    except ValueError:
-        return False'''
 
 opcodes = {}
 opcodes["CLA"] = "0000"
@@ -90,7 +76,7 @@ def passOne(file):
 		if(len(inputTable[address])==2):
 			if(inputTable[address][1]!="CLA" and inputTable[address][1]!="STP"):
 				sys.exit("ERROR at line " + str(location_counter) +": Incorrect syntax of input. Check documentation.")
-		
+
 
 		if(inputTable[address][0]):
 			if(inputTable[address][0] in lableTable):
@@ -276,7 +262,19 @@ def secondPass():
 	for i in ans:
 		""" print object code"""
 		print(i)
-	return 
+	return
+
+
+def printCool(toPrint):
+	for i in toPrint:
+		print(i,end="")
+		t.sleep(0.05)
+		sys.stdout.flush()
+	for i in range(4):
+		t.sleep(0.5)
+		print(".",end=" ")
+		sys.stdout.flush()
+	print()
 
 
 
@@ -288,10 +286,12 @@ while(inputFlag):
 		file = input("Enter name of the file: ")
 		asmFile = open(file, 'r')
 		print()
+		printCool("Initialising assembler")
 		(passOne(asmFile))
 		#print(symbolTable)
 		print("GIVEN OPCODES")
 		printDict(opcodes)
+		printCool("Initialising first pass")
 		print("LABEL TABLE")
 		printDict(lableTable)
 		#print(lableTable)
@@ -303,6 +303,7 @@ while(inputFlag):
 		#print(opcodeTable)
 		#print()
 		print()
+		printCool("Initialising second pass")
 		
 		secondPass()
 		
