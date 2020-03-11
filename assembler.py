@@ -287,11 +287,12 @@ while(inputFlag):
 		asmFile = open(file, 'r')
 		print()
 		printCool("Initialising assembler")
-		(passOne(asmFile))
+		
 		#print(symbolTable)
 		print("GIVEN OPCODES")
 		printDict(opcodes)
 		printCool("Initialising first pass")
+		(passOne(asmFile))
 		print("LABEL TABLE")
 		printDict(lableTable)
 		#print(lableTable)
