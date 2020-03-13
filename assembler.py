@@ -17,24 +17,20 @@ opcodes["MUL"] = "1010"
 opcodes["DIV"] = "1011"
 opcodes["STP"] = "1100"
 
-opcodeTable = {}
-symbolTable = {}
-lableTable = {}
+opcodeTable = {}	#key is lc value is a list - first index is assembly opcode symbol;second is opcode of the symbol; third is operand
+symbolTable = {}	#key is variable/label;value is a list- first index is value stored in variable; second index is memory allocated to variable
+lableTable = {}		#lable table as dictionary : keys are labels and their value is location counter
 ans = []
 global divVariables
 divVariables = False
+memory = []
 
 
 def passOne(file):
 	global divVariables
 
-	#asmFile = open(file, "r")
-	#asmDirective = ["START","END\n"]
-
 	start = file.readlines()
-	#print("jkfghj "+str(len(start)))
-	#print(str(start[0])==str("START"))
-	#inputTable[address] = start[address+1].split("\t")
+	print(start[-1]=="")
 	
 	startList = start[0].split("\t")
 	
@@ -44,138 +40,135 @@ def passOne(file):
 		return
 	elif(len(startList)==2):
 		location_counter = int(startList[1])
-		#print("startList"+str(startList[1]))
-		#num = int(startList[1])
+
 	else:
 		location_counter = 0
-		#num = 255
 
-	address = 0
+	address = 1		# index of start
 	inputTable = {}
-	
 
 
-
-	while(address<len(start)-1):
-
-
-		inputTable[address] = list(map(lambda x:x.rstrip(),start[address+1].split("\t")))
+	while(address<len(start)):
 
 
-		if(len(inputTable[address])>3):
-			sys.exit("ERROR at line " + str(location_counter) +": Incorrect syntax of input. Check documentation.")
+		inputTable[location_counter] = list(map(lambda x:x.rstrip(),start[address].split("\t")))
+		#	split the input and store in the dictionary inputTable as a list with lc as the key value
+
+
+		if(len(inputTable[location_counter])>3):
+			if(inputTable[location_counter][3][0]!="/"):	#i.e. fourth element of list is not a comment
+				sys.exit("ERROR at line " + str(location_counter) +": Incorrect syntax of input. Check documentation.")
 			#	error if more than one variable is used in one instruction
 
-		if(len(inputTable[address])== 1):
-			if("END" in inputTable[address][0]):
+		if(len(inputTable[location_counter])== 1):
+			if("END" in inputTable[location_counter][0]):
 				"""if END is read, first pass is finished."""
 				return 
 			sys.exit("ERROR at line " + str(location_counter) +": Incorrect syntax of input. Check documentation.")
 
+		if(isSymbolValid(inputTable[location_counter][1])):
+			""" Exit program if an invalid opcode is detected."""
+			sys.exit("ERROR at line " + str(location_counter) +": Invalid assembly opcode '"+inputTable[location_counter][1]+"'. Check documentation.")
 
-		if(len(inputTable[address])==2):
-			if(inputTable[address][1]!="CLA" and inputTable[address][1]!="STP"):
-				sys.exit("ERROR at line " + str(location_counter) +": Incorrect syntax of input. Check documentation.")
 
-
-		if(inputTable[address][0]):
-			if(inputTable[address][0] in lableTable):
+		if(inputTable[location_counter][0]):
+			"""	if there's a label"""
+			if(inputTable[location_counter][0] in lableTable):
 				"""	error if a label is declared twice in code"""
-				sys.exit("ERROR at line "+str(location_counter)+": Label '"+inputTable[address][0]+"' is already used. Cannot be used again. Check documentation and try again.")
+				sys.exit("ERROR at line "+str(location_counter)+": Label '"+inputTable[location_counter][0]+"' is already used. Cannot be used again. Check documentation and try again.")
 
-			isLabelValid(inputTable[address][0],location_counter)
-			lableTable[inputTable[address][0]] = location_counter		#	lable table as dictionary : keys are labels and their value is location counter
-
-
-
-
-		if(len(inputTable[address])==2):
-			if(inputTable[address][1]!="CLA" and inputTable[address][1]!="STP"):
-				sys.exit("ERROR at line " + str(location_counter) +": Incorrect syntax of input. Check documentation.")
+			isLabelValid(inputTable[location_counter][0],location_counter)
+			lableTable[inputTable[location_counter][0]] = location_counter		
 
 
 
-			if(inputTable[address][1]=="STP"):
+		if(len(inputTable[location_counter])==2):
+			""" handling CLA and STP """
 
-				opcodeTable[location_counter] = [inputTable[address][1],opcodes[inputTable[address][1]]]
+			if(inputTable[location_counter][1]=="STP"):
+
+				if(address==len(start)-1):
+					"""variables are not given values"""
+					sys.exit("ERROR: Incorrect syntax of input.'END' expected at the end of program. Check documentation.")
+
+				opcodeTable[location_counter] = [inputTable[location_counter][1],opcodes[inputTable[location_counter][1]]]
 				address+=1
 				location_counter+=1
 				while(True):
-					inputTable[address] = list(map(lambda x:x.rstrip(),start[address+1].split("\t")))
-					if(address==len(start)-2):
-						if(inputTable[address][0]=="END"):
+					inputTable[location_counter] = list(map(lambda x:x.rstrip(),start[address].split("\t")))
+					if(address==len(start)-1):
+						if(inputTable[location_counter][0]=="END"):
+							if(len(inputTable[location_counter])>1):
+								# if there's a value/variable after END
+								sys.exit("ERROR: Incorrect syntax at line "+str(location_counter)+". Check documentation.")
+
 							if(divVariables):
-								symbolTable["R1"] = ['0',location_counter]
-								symbolTable["R2"] = ['0',location_counter+4]
+								#if DIV is used n code
+								symbolTable["R1"] = ['0',decimalToBinary(location_counter)]
+								symbolTable["R2"] = ['0',decimalToBinary(location_counter+4)]
 							return 
 						sys.exit("ERROR: Incorrect syntax of input.'END' expected at the end of program. Check documentation.")
+						# if END is missing
 
-
-					readVariables(inputTable, address, location_counter)					#	to read variables after STP
+					readVariables(inputTable,location_counter)					#	to read variables after STP
 					address+=1
-					location_counter+=4
+					location_counter+=4											#	one word = 4 bytes
 			else:
-
-				opcodeTable[location_counter] = [inputTable[address][1],opcodes[inputTable[address][1]]]
+				# for CLA
+				opcodeTable[location_counter] = [inputTable[location_counter][1],opcodes[inputTable[location_counter][1]]]
 				address+=1
 				location_counter+=1
 				continue
 
 
 
-
-		if(isSymbolValid(inputTable[address][1])):
-			""" Exit program if an invalid opcode is detected."""
-			sys.exit("ERROR at line " + str(location_counter) +": Invalid assembly opcode '"+inputTable[address][1]+"'. Check documentation.")
-
-		if(len(inputTable[address])==3):
-
-
+		if(len(inputTable[location_counter])==3):
 			"""	error if variable is used with CLA/STP"""
-			if(inputTable[address][1]=="CLA"):
+			if(inputTable[location_counter][1]=="CLA"):
 				sys.exit("ERROR at line "+str(location_counter)+" : You cannot have a variable with CLA.")
-			if(inputTable[address][1]=="STP"):
+			if(inputTable[location_counter][1]=="STP"):
 				sys.exit("ERROR at line "+str(location_counter)+" : You cannot have a variable with STP.")
 
 
 
-			if(inputTable[address][1]=="BRZ" or inputTable[address][1]=="BRN" or inputTable[address][1]=="BRP"):
+			if(inputTable[location_counter][1]=="BRZ" or inputTable[location_counter][1]=="BRN" or inputTable[location_counter][1]=="BRP"):
+				opcodeTable[location_counter] = [inputTable[location_counter][1],opcodes[inputTable[location_counter][1]],inputTable[location_counter][2]]
 				
-				if(inputTable[address][2] not in lableTable):
-					symbolTable[inputTable[address][2]] = "label"
-					#sys.exit("ERROR at line "+str(location_counter)+" : Label not defined.")
+				if(inputTable[location_counter][2] not in lableTable):
+					symbolTable[inputTable[location_counter][2]] = "label"
+					#	for forward referencing
 				else:
-					symbolTable[inputTable[address][2]] = lableTable[inputTable[address][2]]
+					symbolTable[inputTable[location_counter][2]] = ["-",decimalToBinary(lableTable[inputTable[location_counter][2]])]
 				address+=1
 				location_counter+=1
 				continue
 
-			#print(inputTable[address][1])
-			#print(inputTable[address][1]=="DIV")
 
-			if(inputTable[address][1]=="DIV"):
+			if(inputTable[location_counter][1]=="DIV"):
 				divVariables= True
 
-			isVariableValid(inputTable[address][2],location_counter)
-			symbolTable[inputTable[address][2]] = False					# if variable is used but not declared
+			isVariableValid(inputTable[location_counter][2],location_counter)
+			symbolTable[inputTable[location_counter][2]] = False					# if variable is used but not declared
 
 				
 
-		if(len(inputTable[address][2])==0):
+		if(len(inputTable[location_counter][2])==0):
 			sys.exit("ERROR at line "+str(location_counter)+" : Incorrect syntax of input. Check documentation.")
-		opcodeTable[location_counter] = [inputTable[address][1],opcodes[inputTable[address][1]],inputTable[address][2]]
+		opcodeTable[location_counter] = [inputTable[location_counter][1],opcodes[inputTable[location_counter][1]],inputTable[location_counter][2]]
 		address +=1
 		location_counter+=1
 
-		#sys.exit("Success!")
+
+	sys.exit("ERROR: END and STP expected at the end of program")	#if both END and STP are not provided in input
 	return
+
 
 def isVariableValid(variable,lc):
 	global divVariables
 	""" to check if variable is valid"""
-	if(variable in opcodeTable or variable=="START" or variable=="END" or variable in opcodes.keys()):
+	if(variable in opcodes.keys() or variable=="START" or variable=="END" or variable in opcodes.keys()):
 		sys.exit("ERROR at line "+str(lc)+": '"+variable+"' is an invalid variable. Check documentation.")
-	#print(divVariables)
+
 	if(variable=="R1" or variable=="R2"):
 		if(not divVariables):
 			sys.exit("ERROR at line "+str(lc)+": '"+variable+"' is an invalid variable. Check documentation.")
@@ -185,20 +178,21 @@ def isLabelValid(label,lc):
 	"""check if label is valid.
 	error if label is same as opcode or assembly directive or same as a variable"""
 	if(label in symbolTable and symbolTable[label]=="label"):
-		symbolTable[label] = lc
+		symbolTable[label] = ["-",decimalToBinary(lc)]
 		return
 
 	if (label in opcodes.keys() or label == "END" or label == "START" or label in symbolTable):
 		sys.exit("ERROR at line "+str(lc)+": Invalid label "+label+" .Check documentation and try again.")
 	
 
-def readVariables(inputTable, address, memory):
-	if(inputTable[address][0] not in symbolTable):
-		print("WARNING: Variable '"+inputTable[address][0]+"' is declared but not used in code.")
-	if(len(inputTable[address])==1 or len(inputTable[address][1])==0):
-		sys.exit("ERROR: Please provide value to the variable "+str(inputTable[address][0])+".")
-	symbolTable[inputTable[address][0]] = [inputTable[address][1],memory]
+def readVariables(inputTable, location_counter):
+	""" store variable values provided after STP"""
 
+	if(inputTable[location_counter][0] not in symbolTable):
+		print("WARNING: Variable '"+inputTable[location_counter][0]+"' is declared but not used in code.")
+	if(len(inputTable[location_counter])==1 or len(inputTable[location_counter][1])==0):
+		sys.exit("ERROR: Please provide value to the variable "+str(inputTable[location_counter][0])+".")
+	symbolTable[inputTable[location_counter][0]] = [inputTable[location_counter][1],decimalToBinary(location_counter)]
 
 
 
@@ -212,7 +206,8 @@ def isSymbolValid(inputSymbol):
 	return ErrorFlag
 
 
-def decimalToBinary(n): 
+def decimalToBinary(n):
+	""" converts decimal to binary """ 
 	ans = ""
 	if(n>1):
 		ans += decimalToBinary(n//2)
@@ -237,8 +232,6 @@ def printDict(dictionary):
 
 
 def secondPass():
-	#print(symbolTable)
-	#print(opcodeTable)
 
 	for i in symbolTable.keys():
 		if (symbolTable[i]==False):
@@ -248,9 +241,11 @@ def secondPass():
 
 	
 	for i in opcodeTable.keys():
-		
+
 		if(len(opcodeTable[i])==3):
-			objAddress = decimalToBinary(symbolTable[opcodeTable[i][2]][1])
+			objAddress = symbolTable[opcodeTable[i][2]][1]
+			if(len(objAddress)>8):
+				objAddress = '001'
 			objAddress = "0"*(8-len(objAddress)) + objAddress
 			ans.append(opcodeTable[i][1]+ objAddress)
 		else:
@@ -278,7 +273,7 @@ def printCool(toPrint):
 
 
 
-########################################MAIN CODE STARTS HERE#######################################
+######################################## MAIN CODE STARTS HERE #######################################
 
 inputFlag = True
 while(inputFlag):
@@ -287,22 +282,20 @@ while(inputFlag):
 		asmFile = open(file, 'r')
 		print()
 		printCool("Initialising assembler")
-		
-		#print(symbolTable)
+
 		print("GIVEN OPCODES")
 		printDict(opcodes)
 		printCool("Initialising first pass")
 		(passOne(asmFile))
 		print("LABEL TABLE")
 		printDict(lableTable)
-		#print(lableTable)
+
 		print("SYMBOL TABLE")
 		printDict(symbolTable)
-		#print(symbolTable)
+
 		print("OPCODE TABLE")
 		printDict(opcodeTable)
-		#print(opcodeTable)
-		#print()
+
 		print()
 		printCool("Initialising second pass")
 		
@@ -311,19 +304,4 @@ while(inputFlag):
 		inputFlag = False
 	except FileNotFoundError:
 		print("No File Found, Kindly Retry")
-
-
-#print(literals)
-
-## VALID SYBOLS ##
-
-
-
-
-
-
-
-
-
-
 
