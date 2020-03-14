@@ -30,7 +30,6 @@ def passOne(file):
 	global divVariables
 
 	start = file.readlines()
-	print(start[-1]=="")
 	
 	startList = start[0].split("\t")
 	
@@ -54,9 +53,8 @@ def passOne(file):
 		inputTable[location_counter] = list(map(lambda x:x.rstrip(),start[address].split("\t")))
 		#	split the input and store in the dictionary inputTable as a list with lc as the key value
 
-
 		if(len(inputTable[location_counter])>3):
-			if(inputTable[location_counter][3][0]!="/"):	#i.e. fourth element of list is not a comment
+			if(len(inputTable[location_counter][3])!=0 and inputTable[location_counter][3][0]!="/"):	#i.e. fourth element of list is not a comment
 				sys.exit("ERROR at line " + str(location_counter) +": Incorrect syntax of input. Check documentation.")
 			#	error if more than one variable is used in one instruction
 
@@ -65,6 +63,10 @@ def passOne(file):
 				"""if END is read, first pass is finished."""
 				return 
 			sys.exit("ERROR at line " + str(location_counter) +": Incorrect syntax of input. Check documentation.")
+
+		if(len(inputTable[location_counter])==2):
+			if(inputTable[location_counter][1]!="CLA" and inputTable[location_counter][1]!="STP"):
+				sys.exit("ERROR at line " + str(location_counter) +": Incorrect syntax of input. Check documentation.")
 
 		if(isSymbolValid(inputTable[location_counter][1])):
 			""" Exit program if an invalid opcode is detected."""
@@ -82,10 +84,14 @@ def passOne(file):
 
 
 
-		if(len(inputTable[location_counter])==2):
+		if(len(inputTable[location_counter])>=2):
 			""" handling CLA and STP """
 
 			if(inputTable[location_counter][1]=="STP"):
+
+				if(len(inputTable[location_counter])>=3):
+					if(inputTable[location_counter][2]):
+						sys.exit("ERROR at line "+str(location_counter)+" : You cannot have a variable with STP.")
 
 				if(address==len(start)-1):
 					"""variables are not given values"""
@@ -109,12 +115,18 @@ def passOne(file):
 							return 
 						sys.exit("ERROR: Incorrect syntax of input.'END' expected at the end of program. Check documentation.")
 						# if END is missing
-
+					if(inputTable[location_counter][0]=="END"):
+						sys.exit("ERROR: Incorrect syntax. Check documentation.")
 					readVariables(inputTable,location_counter)					#	to read variables after STP
 					address+=1
 					location_counter+=4											#	one word = 4 bytes
-			else:
+			elif(inputTable[location_counter][1]=="CLA"):
 				# for CLA
+				if(len(inputTable[location_counter])>=3):
+					if(inputTable[location_counter][2]):
+						sys.exit("ERROR at line "+str(location_counter)+" : You cannot have a variable with CLA.")
+
+
 				opcodeTable[location_counter] = [inputTable[location_counter][1],opcodes[inputTable[location_counter][1]]]
 				address+=1
 				location_counter+=1
@@ -122,13 +134,7 @@ def passOne(file):
 
 
 
-		if(len(inputTable[location_counter])==3):
-			"""	error if variable is used with CLA/STP"""
-			if(inputTable[location_counter][1]=="CLA"):
-				sys.exit("ERROR at line "+str(location_counter)+" : You cannot have a variable with CLA.")
-			if(inputTable[location_counter][1]=="STP"):
-				sys.exit("ERROR at line "+str(location_counter)+" : You cannot have a variable with STP.")
-
+		if(len(inputTable[location_counter])>=3):
 
 
 			if(inputTable[location_counter][1]=="BRZ" or inputTable[location_counter][1]=="BRN" or inputTable[location_counter][1]=="BRP"):
@@ -187,11 +193,11 @@ def isLabelValid(label,lc):
 
 def readVariables(inputTable, location_counter):
 	""" store variable values provided after STP"""
-
 	if(inputTable[location_counter][0] not in symbolTable):
 		print("WARNING: Variable '"+inputTable[location_counter][0]+"' is declared but not used in code.")
 	if(len(inputTable[location_counter])==1 or len(inputTable[location_counter][1])==0):
 		sys.exit("ERROR: Please provide value to the variable "+str(inputTable[location_counter][0])+".")
+	isVariableValid(inputTable[location_counter][1],"-")
 	symbolTable[inputTable[location_counter][0]] = [inputTable[location_counter][1],decimalToBinary(location_counter)]
 
 
