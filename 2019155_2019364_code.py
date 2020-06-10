@@ -106,7 +106,7 @@ def passOne(file):
 						if(inputTable[location_counter][0]=="END"):
 							if(len(inputTable[location_counter])>1):
 								# if there's a value/variable after END
-								sys.exit("ERROR: Incorrect syntax at line "+str(location_counter)+". Check documentation.")
+								sys.exit("ERROR: Incorrect syntax . Check documentation.")
 
 							if(divVariables):
 								#if DIV is used n code
